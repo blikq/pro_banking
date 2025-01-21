@@ -10,13 +10,12 @@ import (
 	"time"
 )
 
-func StartService() {
-	// Create a new role
-	db := ConnectDB()
+type Data struct {
+	success bool
+}
 
-	if db.Error != nil {
-		log.Fatal(db.Error)
-	}
+func StartService() {
+	ConnectDB()
 
 	router := mux.NewRouter()
 
@@ -25,7 +24,7 @@ func StartService() {
 	router.HandleFunc("/register", register).Methods("POST")
 
 	// Start the HTTP server
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8090", router))
 
 }
 
@@ -34,12 +33,14 @@ func getStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
-	type User_ struct {
+	// ConnectDB()
+
+	type User_Temp struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	var user User_
+	var user User_Temp
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -53,8 +54,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var existingUser User
-	db := ConnectDB()
-	db.Where("email = ?", user.Email).First(&existingUser)
+	DB.Where("email = ?", user.Email).First(&existingUser)
 
 	if existingUser.ID == 0 {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
@@ -97,10 +97,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	w.WriteHeader(http.StatusOK)
+	successResponse := Data{success: true}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(successResponse)
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
+	// ConnectDB()
+
 	type User_ struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -114,8 +119,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var existingUser User
-	db := ConnectDB()
-	db.Where("email = ?", user.Email).First(&existingUser)
+
+	DB.Where("email = ?", user.Email).First(&existingUser)
 
 	if existingUser.ID != 0 {
 		http.Error(w, "User already exists", http.StatusBadRequest)
@@ -128,9 +133,12 @@ func register(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error hashing password: %v", err)
 		return
 	}
-
 	CreateNormalUser(hash, user.Email)
 
+	successResponse := Data{success: true}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(successResponse)
 	w.WriteHeader(http.StatusOK)
 }
 
