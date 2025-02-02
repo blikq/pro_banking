@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := build
+# .DEFAULT_GOAL := build
 
 # Formatting section
 fmt:
@@ -8,6 +8,6 @@ fmt:
 .PHONY: fmt
 
 # Build section
-build: fmt
+run:
 	go run ./cmd .
-.PHONY: build
+.PHONY: run
