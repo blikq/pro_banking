@@ -11,7 +11,8 @@ import (
 )
 
 type Data struct {
-	success bool
+	Success bool	`json:"success"`
+	Token   string	`json:"token"`
 }
 
 func StartService() {
@@ -22,10 +23,10 @@ func StartService() {
 	router.HandleFunc("/api/status", getStatus).Methods("GET")
 	router.HandleFunc("/api/login", login).Methods("POST")
 	router.HandleFunc("/api/register", register).Methods("POST")
+	router.HandleFunc("/api/authenticate-admin", authenticateAdmin).Methods("POST")
 
 	// Start the HTTP server
-	log.Fatal(http.ListenAndServe(":8090", router))
-
+	log.Fatal(http.ListenAndServe(":8099", router))
 }
 
 func getStatus(w http.ResponseWriter, r *http.Request) {
@@ -47,16 +48,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := r.Header.Get("email")
-	if email != user.Email {
-		http.Error(w, "Invalid email", http.StatusBadRequest)
-		return
-	}
-
 	var existingUser User
-	DB.Where("email = ?", user.Email).First(&existingUser)
+	res := DB.Where("email = ?", user.Email).First(&existingUser)
 
-	if existingUser.ID == 0 {
+	if res.Error != nil {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
@@ -67,10 +62,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Now().Add(5 * time.Minute)
+	expirationTime := time.Now().Add(10000 * time.Minute)
 
 	claims := &Claims{
-		Role: existingUser.Roles,
+		Role: existingUser.Role,
 		StandardClaims: jwt.StandardClaims{
 			Subject:   existingUser.Email,
 			ExpiresAt: expirationTime.Unix(),
@@ -87,20 +82,25 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "token",
-		Value:    tokenString,
-		Expires:  expirationTime,
-		Path:     "/",
-		Domain:   "localhost",
-		Secure:   false,
-		HttpOnly: true,
-	})
-
-	successResponse := Data{success: true}
+	// http.SetCookie(w, &http.Cookie{
+	// 	Name:     "token",
+	// 	Value:    tokenString,
+	// 	Expires:  expirationTime,
+	// 	Path:     "/",
+	// 	Domain:   "localhost",
+	// 	Secure:   false,
+	// 	HttpOnly: true,
+	// })
+	successResponse := Data{Success: true, Token: tokenString}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(successResponse)
+	w.WriteHeader(http.StatusOK)
+	response, err := json.Marshal(successResponse)
+	if err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+	w.Write(response)
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
@@ -120,9 +120,9 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 	var existingUser User
 
-	DB.Where("email = ?", user.Email).First(&existingUser)
+	res := DB.Where("email = ?", user.Email).First(&existingUser)
 
-	if existingUser.ID != 0 {
+	if res.Error == nil {
 		http.Error(w, "User already exists", http.StatusBadRequest)
 		return
 	}
@@ -135,15 +135,44 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 	CreateNormalUser(hash, user.Email)
 
-	successResponse := Data{success: true}
-
+	successResponse := Data{Success: true}
+	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(successResponse)
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(successResponse)
 }
 
 
 
+func authenticateAdmin(w http.ResponseWriter, r *http.Request) {
+	ConnectDB()
 
+	tokenString := r.Header.Get("Authorization")
+	fmt.Println(tokenString)
+	if tokenString == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
+	claims, err := ParseToken(tokenString)
 
+	if err != nil {
+		http.Error(w, "Expired Token", http.StatusUnauthorized)
+		return
+	}
+
+	var user User
+	res := DB.Where("email = ?", claims.StandardClaims.Subject).First(&user)
+
+	if res.Error != nil {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	if user.Role.Name != "Admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

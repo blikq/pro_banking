@@ -17,7 +17,7 @@ func CompareHashPassword(password, hash string) bool {
 	return err == nil
 }
 
-func ParseToken(tokenString string) (claims *Claims, err error) {
+func ParseToken(tokenString string ) (claims *Claims, err error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte("my_secret_key"), nil
 	})

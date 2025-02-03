@@ -1,38 +1,97 @@
 package pkg
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
-	"sync"
+
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+
 )
 
-type Transaction struct {
-	gorm.Model
-	Amount float64	`json:"amount"`
-	From User		`json:"from"`
-	To User			`json:"to"`
-	Message string	`json:"message"`
+
+
+func StartService() {
+	ConnectDB()
+
+	router := mux.NewRouter()
+
+	router.HandleFunc("/api/status", getStatus).Methods("GET")
+	router.HandleFunc("/api/transaction", createTransaction).Methods("POST")
+
+	// Start the HTTP server
+	log.Fatal(http.ListenAndServe(":8092", router))
+
 }
 
-func ConnectDB() {
-	once.Do(func() {
-        err := godotenv.Load()
-        if err != nil {
-            log.Fatal("Error loading .env file")
-        }
+func getStatus(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "Ok")
+}
 
-        dsn := os.Getenv("DB_URL")
-        db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-        if err != nil {
-            log.Fatal("Failed to connect to database:", err)
-        }
+func createTransaction(w http.ResponseWriter, r *http.Request) {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
-        db.AutoMigrate(&User{}, &Role{})
+	// dsn := os.Getenv("DB_URL")
 
-        DB = db
-    })
+	// Authenticate 
+	url := "http://localhost:8091/api/login"
+	type User_Temp struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 
+	user := User_Temp{
+		Email:    os.Getenv("TEST_EMAIL"),
+		Password:  os.Getenv("TEST_PASSWORD"),
+	}
+
+	userJSON, err := json.Marshal(user)
+	if err != nil {
+		fmt.Print(err.Error())
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(userJSON))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	defer resp.Body.Close()
+
+	var response map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	fmt.Println(response)
+
+	var transaction Transaction
+	// err := json.NewDecoder(r.Body).Decode(&transaction)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	DB, err := ConnectDB()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	DB.Create(&transaction)
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(transaction)
+}
 }

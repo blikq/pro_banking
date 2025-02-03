@@ -19,29 +19,26 @@ var (
 
 
 type Permission struct {
-	//gorm.Model
 	ID   uint
-	Name  string
+	Name string
 }
 
-// Admin, Customer, Auditor
 type Role struct {
-	gorm.Model		
-    Name string 	`json:"name"`
-    Users []*User 	`gorm:"many2many:user_roles" json:"users"`
+	gorm.Model
+	Name  string    `json:"name"`
+	Users []User    `gorm:"foreignKey:RoleID" json:"users"`
 }
 
 type User struct {
 	gorm.Model
-	Email string	`json:"email"`
-	Password string `json:"-"` // Don't return password in JSON
-	Roles []Role 	`gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;many2many:user_roles;" json:"roles"`
+	Email    string `json:"email"`
+	Password string `json:"-"`
+	RoleID   uint   `json:"role_id"`
+	Role     Role   `gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"role"`
 }
 
-
-
 type Claims struct {
-	Role []Role `json:"role"`
+	Role Role `json:"role"`
 	jwt.StandardClaims
 }
 
@@ -71,37 +68,24 @@ func ConnectDB() {
 
 func CreateNormalUser(hash, email string) User {
 	hashedPassword := hash
-	user := User{Email: email, Password: string(hashedPassword), Roles: []Role{{Name: "Customer"}}}
+	role := Role{}
+	DB.Where("name = ?", "Customer").First(&role)
+	user := User{Email: email, Password: string(hashedPassword), Role: role}
 	DB.Create(&user)
 	return user
 }
 
 func CreateAdminUser(hash, email string) User {
 	hashedPassword := hash
-	user := User{Email: email, Password: string(hashedPassword), Roles: []Role{{Name: "Admin"}}}
+	user := User{Email: email, Password: string(hashedPassword), Role: Role{Name: "Admin"}}
 	DB.Create(&user)
 	return user
 }
 
 func CreateAuditorUser(hash, email string) User {
 	hashedPassword := hash
-	user := User{Email: email, Password: string(hashedPassword), Roles: []Role{{Name: "Auditor"}}}
+	user := User{Email: email, Password: string(hashedPassword), Role: Role{Name: "Auditor"}}
 	DB.Create(&user)
 	return user
 }
 
-func CreateTransaction(amount float64, from, to User, message string) (Transaction, error) {
-	tx := &Transaction{
-		Amount:  amount,
-		Message: message,
-		From:    from,
-		To:      to,
-	}
-	var toExistingUser User
-	result := DB.Where("id = ?", from.ID).First(&toExistingUser)
-	if result.Error != nil {
-		return Transaction{}, result.Error
-	}
-	DB.Create(&tx)
-	return *tx, nil
-}
