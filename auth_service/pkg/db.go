@@ -38,13 +38,7 @@ type User struct {
 	Roles []Role 	`gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;many2many:user_roles;" json:"roles"`
 }
 
-type Transaction struct {
-	gorm.Model
-	Amount float64	`json:"amount"`
-	From User		`json:"from"`
-	To User			`json:"to"`
-	Message string	`json:"message"`
-}
+
 
 type Claims struct {
 	Role []Role `json:"role"`

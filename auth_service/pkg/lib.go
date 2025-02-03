@@ -19,9 +19,9 @@ func StartService() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/status", getStatus).Methods("GET")
-	router.HandleFunc("/login", login).Methods("POST")
-	router.HandleFunc("/register", register).Methods("POST")
+	router.HandleFunc("/api/status", getStatus).Methods("GET")
+	router.HandleFunc("/api/login", login).Methods("POST")
+	router.HandleFunc("/api/register", register).Methods("POST")
 
 	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":8090", router))

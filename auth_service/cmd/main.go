@@ -1,6 +1,6 @@
 package main
 
-import "github.com/blikq/pro_banking/db_service/pkg"
+import "github.com/blikq/pro_banking/auth_service/pkg"
 
 // "github.com/blikq/pro_banking/db_service/pkg"
 
