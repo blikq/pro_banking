@@ -62,7 +62,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Now().Add(10000 * time.Minute)
+	expirationTime := time.Now().Add(10000000 * time.Minute)
 
 	claims := &Claims{
 		Role: existingUser.Role,

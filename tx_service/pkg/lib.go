@@ -1,13 +1,13 @@
 package pkg
 
 import (
-	"bytes"
-	"encoding/json"
+	// "bytes"
+	// "encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-
+	// "os"
+	// "io"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 
@@ -16,12 +16,12 @@ import (
 
 
 func StartService() {
-	ConnectDB()
+	// ConnectDB()
 
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/status", getStatus).Methods("GET")
-	router.HandleFunc("/api/transaction", createTransaction).Methods("POST")
+	router.HandleFunc("/api/create-tx", createTransaction).Methods("POST")
 
 	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":8092", router))
@@ -40,58 +40,38 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 
 	// dsn := os.Getenv("DB_URL")
 
-	// Authenticate 
-	url := "http://localhost:8091/api/login"
-	type User_Temp struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+	if auth() {
+		fmt.Fprint(w, "Authenticated")
+	} else {
+		fmt.Fprint(w, "Not Authenticated")
 	}
 
-	user := User_Temp{
-		Email:    os.Getenv("TEST_EMAIL"),
-		Password:  os.Getenv("TEST_PASSWORD"),
-	}
+	
 
-	userJSON, err := json.Marshal(user)
-	if err != nil {
-		fmt.Print(err.Error())
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(userJSON))
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	// var response map[string]interface{}
+	// err = json.NewDecoder(resp.Body).Decode(&response)
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// }
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
+	// fmt.Println(response)
 
-	defer resp.Body.Close()
-
-	var response map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&response)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	fmt.Println(response)
-
-	var transaction Transaction
+	// var transaction Transaction
 	// err := json.NewDecoder(r.Body).Decode(&transaction)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
 
-	DB, err := ConnectDB()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// DB, err := ConnectDB()
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 
-	DB.Create(&transaction)
+	// DB.Create(&transaction)
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(transaction)
+	// w.WriteHeader(http.StatusCreated)
+	// json.NewEncoder(w).Encode(transaction)
 }
-}
+
