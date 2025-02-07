@@ -47,7 +47,6 @@ func createTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	
-
 	// var response map[string]interface{}
 	// err = json.NewDecoder(resp.Body).Decode(&response)
 	// if err != nil {

@@ -19,7 +19,7 @@ func auth() bool {
 
 
 	// Authenticate 
-	url := "http://localhost:8099/api/authenticate-admin"
+	url := os.Getenv("AUTH_URL")
 	
 
 	req, err := http.NewRequest("POST", url, nil)
@@ -43,11 +43,13 @@ func auth() bool {
 	log.Printf("client: response body: %s\n", resBody)
 
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode == 200 {
+		return true
+	}else{
 		return false
+
 	}
 
-	return true
 }
 
 

@@ -68,8 +68,12 @@ func ConnectDB() {
 
 func CreateNormalUser(hash, email string) User {
 	hashedPassword := hash
-	role := Role{}
-	DB.Where("name = ?", "Customer").First(&role)
+	var role Role
+	DB.Where("name = ?", "customer").First(&role)
+	if role.ID == 0 {
+		role = Role{Name: "customer"}
+		DB.Create(&role)
+	}
 	user := User{Email: email, Password: string(hashedPassword), Role: role}
 	DB.Create(&user)
 	return user
@@ -77,14 +81,26 @@ func CreateNormalUser(hash, email string) User {
 
 func CreateAdminUser(hash, email string) User {
 	hashedPassword := hash
-	user := User{Email: email, Password: string(hashedPassword), Role: Role{Name: "Admin"}}
+	var role Role
+	DB.Where("name = ?", "admin").First(&role)
+	if role.ID == 0 {
+		role = Role{Name: "admin"}
+		DB.Create(&role)
+	}
+	user := User{Email: email, Password: string(hashedPassword), Role: role}
 	DB.Create(&user)
 	return user
 }
 
 func CreateAuditorUser(hash, email string) User {
 	hashedPassword := hash
-	user := User{Email: email, Password: string(hashedPassword), Role: Role{Name: "Auditor"}}
+	var role Role
+	DB.Where("name = ?", "auditor").First(&role)
+	if role.ID == 0 {
+		role = Role{Name: "auditor"}
+		DB.Create(&role)
+	}
+	user := User{Email: email, Password: string(hashedPassword), Role: role}
 	DB.Create(&user)
 	return user
 }

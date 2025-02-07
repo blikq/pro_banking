@@ -24,9 +24,10 @@ func StartService() {
 	router.HandleFunc("/api/login", login).Methods("POST")
 	router.HandleFunc("/api/register", register).Methods("POST")
 	router.HandleFunc("/api/authenticate-admin", authenticateAdmin).Methods("POST")
+	router.HandleFunc("/api/auth-user", auth_user).Methods("POST")
 
 	// Start the HTTP server
-	log.Fatal(http.ListenAndServe(":8099", router))
+	log.Fatal(http.ListenAndServe(":8091", router))
 }
 
 func getStatus(w http.ResponseWriter, r *http.Request) {
@@ -175,4 +176,34 @@ func authenticateAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func auth_user(w http.ResponseWriter, r *http.Request) {
+	ConnectDB()
+
+	tokenString := r.Header.Get("Authorization")
+	fmt.Println(tokenString)
+	if tokenString == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := ParseToken(tokenString)
+
+	if err != nil {
+		// http.Error(w, "Expired Token", http.StatusUnauthorized)
+		// return
+	}
+
+	var user User
+	res := DB.Where("email = ?", claims.StandardClaims.Subject).First(&user)
+
+	if res.Error != nil {
+		http.Error(w, "User not found", http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(user)
 }
