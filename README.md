@@ -1,6 +1,6 @@
 # pro_banking
 
-A production ready banking solution
+A banking solution
 
 # OPEN TO COLLABORATIONS
 
